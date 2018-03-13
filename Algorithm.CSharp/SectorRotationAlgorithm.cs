@@ -10,20 +10,20 @@ namespace QuantConnect.Algorithm.CSharp
 {
     public class SectorRotationAlgorithm : QCAlgorithm
     {
-        private string[] symbols = { "SPY" };
+        private string[] symbols = { "XLF", "XLRE", "XLE", "XLU", "XLK", "XLB", "XLP", "XLY", "XLI", "XLV" };
         private Dictionary<string, RelativeStrengthIndex> rsi = new Dictionary<string, RelativeStrengthIndex>();
         private int rsiPeriod = 14;
         private Resolution resolution = Resolution.Daily;
-        private int rsiBuyTrigger = 30;
-        private int rsiBuyCross = 50;
+        private int rsiBuyTrigger = 20;
+        private int rsiBuyCross = 30;
         private int rsiSellTrigger = 80;
         private int rsiSellCross = 70;
         private decimal cashHoldback = .05m;
 
         public override void Initialize()
         {
-            SetStartDate(2012, 01, 01);  //Set Start Date
-            SetEndDate(2013, 12, 31);    //Set End Date
+            SetStartDate(2005, 01, 01);  //Set Start Date
+            SetEndDate(2014, 12, 31);    //Set End Date
             SetCash(100000);             //Set Strategy Cash
 
             foreach (var symbol in symbols)
@@ -53,7 +53,7 @@ namespace QuantConnect.Algorithm.CSharp
                         Order(symbol.Key, quantity);
                         buySignal = false;
                         sellSignal = false;
-                        Debug($"Purchased {quantity} Shares of {symbol.Key}");
+                        Debug($"Purchased {quantity} Shares of {symbol.Key} @ ${symbol.Value.Value}");
                         continue;
                     }
                 }
@@ -61,7 +61,7 @@ namespace QuantConnect.Algorithm.CSharp
                 {
                     if (Portfolio[symbol.Key].Quantity > 0)
                     {
-                        Debug($"Selling {Portfolio[symbol.Key].Quantity} Shares of {symbol.Key}");
+                        Debug($"Selling {Portfolio[symbol.Key].Quantity} Shares of {symbol.Key} @ ${symbol.Value.Value}");
                         Sell(symbol.Key, Portfolio[symbol.Key].Quantity);
                         buySignal = false;
                         sellSignal = false;
