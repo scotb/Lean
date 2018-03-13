@@ -12,18 +12,26 @@ namespace QuantConnect.Algorithm.CSharp
     {
         private string[] symbols = { "SPY" };
         private Dictionary<string, RelativeStrengthIndex> rsi = new Dictionary<string, RelativeStrengthIndex>();
+        private int rsiPeriod = 14;
+        private Resolution resolution = Resolution.Daily;
+        private int rsiBuyTrigger = 30;
+        private int rsiBuyCross = 50;
+        private int rsiSellTrigger = 80;
+        private int rsiSellCross = 70;
+        private decimal cashHoldback = .05m;
 
         public override void Initialize()
         {
-            SetStartDate(2010, 01, 01);  //Set Start Date
-            SetEndDate(2015, 01, 01);    //Set End Date
+            SetStartDate(2012, 01, 01);  //Set Start Date
+            SetEndDate(2013, 12, 31);    //Set End Date
             SetCash(100000);             //Set Strategy Cash
 
             foreach (var symbol in symbols)
             {
-                var security = AddSecurity(SecurityType.Equity, symbol, Resolution.Daily);
-                rsi.Add(symbol, RSI(security.Symbol, 9));
+                var security = AddSecurity(SecurityType.Equity, symbol, resolution);
+                rsi.Add(symbol, RSI(security.Symbol, rsiPeriod));
             }
+            SetBenchmark("SPY");
         }
 
         private bool sellSignal = false;
@@ -32,16 +40,16 @@ namespace QuantConnect.Algorithm.CSharp
         {
             foreach (var symbol in slice)
             {
-                if (!rsi[symbol.Key.Value].IsReady)
+                if (!rsi[symbol.Key.ID.Symbol].IsReady)
                 {
                     continue;
                 } 
                 Plot("RSI", rsi[symbol.Key.Value]);
-                if (buySignal && rsi[symbol.Key.Value].Current > 30m)
+                if (buySignal && rsi[symbol.Key.Value].Current > rsiBuyCross)
                 {
                     if (Portfolio[symbol.Key].Quantity == 0)
                     {
-                        var quantity = Math.Floor((Portfolio.Cash * 0.95m) / symbol.Value.Value);
+                        var quantity = Math.Floor((Portfolio.Cash * (1 - cashHoldback) / symbols.Length) / symbol.Value.Value);
                         Order(symbol.Key, quantity);
                         buySignal = false;
                         sellSignal = false;
@@ -49,7 +57,7 @@ namespace QuantConnect.Algorithm.CSharp
                         continue;
                     }
                 }
-                else if (sellSignal && rsi[symbol.Key.Value].Current < 70m)
+                else if (sellSignal && rsi[symbol.Key.Value].Current < rsiSellCross)
                 {
                     if (Portfolio[symbol.Key].Quantity > 0)
                     {
@@ -60,12 +68,12 @@ namespace QuantConnect.Algorithm.CSharp
                         continue;
                     }
                 }
-                if (rsi[symbol.Key.Value].Current < 25m)
+                if (rsi[symbol.Key.Value].Current < rsiBuyTrigger)
                 {
                     buySignal = true;
                     sellSignal = false;
                 }
-                else if (rsi[symbol.Key.Value].Current > 75m)
+                else if (rsi[symbol.Key.Value].Current > rsiSellTrigger)
                 {
                     buySignal = false;
                     sellSignal = true;
