@@ -1,24 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using QuantConnect.Data;
+﻿using QuantConnect.Data;
 using QuantConnect.Indicators;
+using System;
+using System.Collections.Generic;
 
 namespace QuantConnect.Algorithm.CSharp
 {
     public class SectorRotationAlgorithm : QCAlgorithm
     {
-        private string[] symbols = { "XLF", "XLRE", "XLE", "XLU", "XLK", "XLB", "XLP", "XLY", "XLI", "XLV" };
+        //private string[] symbols = { "XLF", "XLRE", "XLE", "XLU", "XLK", "XLB", "XLP", "XLY", "XLI", "XLV" };
+        private string[] symbols = { "SPY" };
         private Dictionary<string, RelativeStrengthIndex> rsi = new Dictionary<string, RelativeStrengthIndex>();
+        private Dictionary<string, SimpleMovingAverage> smaTrigger = new Dictionary<string, SimpleMovingAverage>();
+        private Dictionary<string, decimal> previousSMA = new Dictionary<string, decimal>();
         private int rsiPeriod = 14;
         private Resolution resolution = Resolution.Daily;
         private int rsiBuyTrigger = 20;
         private int rsiBuyCross = 30;
         private int rsiSellTrigger = 80;
         private int rsiSellCross = 70;
+        private int smaTriggerPeriod = 50;
         private decimal cashHoldback = .05m;
+        private int maxPositions = 4;
 
         public override void Initialize()
         {
@@ -30,6 +32,8 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 var security = AddSecurity(SecurityType.Equity, symbol, resolution);
                 rsi.Add(symbol, RSI(security.Symbol, rsiPeriod));
+                smaTrigger.Add(symbol, SMA(security.Symbol, smaTriggerPeriod));
+                previousSMA.Add(symbol, 0);
             }
             SetBenchmark("SPY");
         }
@@ -40,12 +44,20 @@ namespace QuantConnect.Algorithm.CSharp
         {
             foreach (var symbol in slice)
             {
-                if (!rsi[symbol.Key.ID.Symbol].IsReady)
+                if (symbol.Value == null || 
+                    !rsi[symbol.Key.ID.Symbol].IsReady || 
+                    !smaTrigger[symbol.Key.ID.Symbol].IsReady)
                 {
                     continue;
                 } 
                 Plot("RSI", rsi[symbol.Key.Value]);
-                if (buySignal && rsi[symbol.Key.Value].Current > rsiBuyCross)
+                Plot($"SMA{smaTriggerPeriod}", smaTrigger[symbol.Key.Value]);
+                var slope = smaTrigger[symbol.Key.Value].Current.Price - previousSMA[symbol.Key.Value];
+                if (buySignal && 
+                    //Portfolio.Count < maxPositions && 
+                    rsi[symbol.Key.Value].Current > rsiBuyCross && 
+                    symbol.Value.Price > smaTrigger[symbol.Key.Value].Current && 
+                    slope > 0)
                 {
                     if (Portfolio[symbol.Key].Quantity == 0)
                     {
@@ -54,10 +66,11 @@ namespace QuantConnect.Algorithm.CSharp
                         buySignal = false;
                         sellSignal = false;
                         Debug($"Purchased {quantity} Shares of {symbol.Key} @ ${symbol.Value.Value}");
-                        continue;
                     }
                 }
-                else if (sellSignal && rsi[symbol.Key.Value].Current < rsiSellCross)
+                else if (sellSignal && 
+                         rsi[symbol.Key.Value].Current < rsiSellCross && 
+                         slope < 0)
                 {
                     if (Portfolio[symbol.Key].Quantity > 0)
                     {
@@ -65,10 +78,11 @@ namespace QuantConnect.Algorithm.CSharp
                         Sell(symbol.Key, Portfolio[symbol.Key].Quantity);
                         buySignal = false;
                         sellSignal = false;
-                        continue;
                     }
                 }
-                if (rsi[symbol.Key.Value].Current < rsiBuyTrigger)
+                previousSMA[symbol.Key.Value] = smaTrigger[symbol.Key.Value].Current.Price;
+                if (rsi[symbol.Key.Value].Current < rsiBuyTrigger && 
+                    symbol.Value.Price < smaTrigger[symbol.Key.Value].Current.Price)
                 {
                     buySignal = true;
                     sellSignal = false;
