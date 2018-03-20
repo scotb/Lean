@@ -22,7 +22,7 @@ namespace QuantConnect.Tests
     [TestFixture, Category("TravisExclude")]
     public class RegressionTests
     {
-        [Test, TestCaseSource("GetRegressionTestParameters")]
+        [Test, TestCaseSource(nameof(GetRegressionTestParameters))]
         public void AlgorithmStatisticsRegression(AlgorithmStatisticsTestParameters parameters)
         {
             QuantConnect.Configuration.Config.Set("quandl-auth-token", "WyAazVXnq7ATy_fefTqm");
@@ -41,6 +41,29 @@ namespace QuantConnect.Tests
 
         private static TestCaseData[] GetRegressionTestParameters()
         {
+            var emptyStatistics = new Dictionary<string, string>
+            {
+                {"Total Trades", "0"},
+                {"Average Win", "0%"},
+                {"Average Loss", "0%"},
+                {"Compounding Annual Return", "0%"},
+                {"Drawdown", "0%"},
+                {"Expectancy", "0"},
+                {"Net Profit", "0%"},
+                {"Sharpe Ratio", "0"},
+                {"Loss Rate", "0%"},
+                {"Win Rate", "0%"},
+                {"Profit-Loss Ratio", "0"},
+                {"Alpha", "0"},
+                {"Beta", "0"},
+                {"Annual Standard Deviation", "0"},
+                {"Annual Variance", "0"},
+                {"Information Ratio", "0"},
+                {"Tracking Error", "0"},
+                {"Treynor Ratio", "0"},
+                {"Total Fees", "$0.00"}
+            };
+
             var basicTemplateStatistics = new Dictionary<string, string>
             {
                 {"Total Trades", "1"},
@@ -85,14 +108,14 @@ namespace QuantConnect.Tests
                 {"Tracking Error", "0.193"},
                 {"Treynor Ratio", "0.011"},
                 {"Total Fees", "$3.09"},
-                {"Total Alphas Generated", "100"},
-                {"Total Alphas Closed", "99"},
-                {"Total Alphas Analysis Completed", "86"},
-                {"Long Alpha Count", "100"},
-                {"Short Alpha Count", "0"},
+                {"Total Insights Generated", "100"},
+                {"Total Insights Closed", "99"},
+                {"Total Insights Analysis Completed", "86"},
+                {"Long Insight Count", "100"},
+                {"Short Insight Count", "0"},
                 {"Long/Short Ratio", "100%"},
                 {"Total Estimated Alpha Value", "$24404.2897"},
-                {"Mean Population Estimated Alpha Value", "$246.508"},
+                {"Mean Population Estimated Insight Value", "$246.508"},
                 {"Mean Population Direction", "48.8372%"},
                 {"Mean Population Magnitude", "48.8372%"},
                 {"Rolling Averaged Population Direction", "68.2411%"},
@@ -682,19 +705,42 @@ namespace QuantConnect.Tests
                 {"Compounding Annual Return", "-100.000%"},
                 {"Drawdown", "5.400%"},
                 {"Expectancy", "-1"},
-                {"Net Profit", "-5.656%"},
-                {"Sharpe Ratio", "-20.375"},
+                {"Net Profit", "-5.603%"},
+                {"Sharpe Ratio", "-19.82"},
                 {"Loss Rate", "100%"},
                 {"Win Rate", "0%"},
                 {"Profit-Loss Ratio", "0"},
                 {"Alpha", "-11.165"},
-                {"Beta", "574.802"},
-                {"Annual Standard Deviation", "0.353"},
-                {"Annual Variance", "0.125"},
-                {"Information Ratio", "-20.43"},
-                {"Tracking Error", "0.353"},
-                {"Treynor Ratio", "-0.013"},
-                {"Total Fees", "$6076.32"}
+                {"Beta", "585.081"},
+                {"Annual Standard Deviation", "0.36"},
+                {"Annual Variance", "0.129"},
+                {"Information Ratio", "-19.873"},
+                {"Tracking Error", "0.359"},
+                {"Treynor Ratio", "-0.012"},
+                {"Total Fees", "$6076.49"}
+            };
+
+            var indicatorSuiteAlgorithmStatistics = new Dictionary<string, string>
+            {
+                {"Total Trades", "1"},
+                {"Average Win", "0%"},
+                {"Average Loss", "0%"},
+                {"Compounding Annual Return", "19.097%"},
+                {"Drawdown", "7.300%"},
+                {"Expectancy", "0"},
+                {"Net Profit", "41.840%"},
+                {"Sharpe Ratio", "1.639"},
+                {"Loss Rate", "0%"},
+                {"Win Rate", "0%"},
+                {"Profit-Loss Ratio", "0"},
+                {"Alpha", "0.29"},
+                {"Beta", "-5.494"},
+                {"Annual Standard Deviation", "0.11"},
+                {"Annual Variance", "0.012"},
+                {"Information Ratio", "1.457"},
+                {"Tracking Error", "0.11"},
+                {"Treynor Ratio", "-0.033"},
+                {"Total Fees", "$1.00"}
             };
 
             return new List<AlgorithmStatisticsTestParameters>
@@ -728,11 +774,16 @@ namespace QuantConnect.Tests
                 new AlgorithmStatisticsTestParameters("HourReverseSplitRegressionAlgorithm", hourReverseSplitStatistics, Language.CSharp),
                 new AlgorithmStatisticsTestParameters("FractionalQuantityRegressionAlgorithm", fractionalQuantityRegressionStatistics, Language.CSharp),
                 new AlgorithmStatisticsTestParameters("BasicTemplateCryptoAlgorithm", basicTemplateCryptoAlgorithmStatistics, Language.CSharp),
+                new AlgorithmStatisticsTestParameters("BasicTemplateFrameworkCryptoAlgorithm", basicTemplateCryptoAlgorithmStatistics, Language.CSharp),
+                new AlgorithmStatisticsTestParameters("IndicatorSuiteAlgorithm", indicatorSuiteAlgorithmStatistics, Language.CSharp),
+                new AlgorithmStatisticsTestParameters("ForexInternalFeedOnDataSameResolutionRegressionAlgorithm", emptyStatistics, Language.CSharp),
+                new AlgorithmStatisticsTestParameters("ForexInternalFeedOnDataHigherResolutionRegressionAlgorithm", emptyStatistics, Language.CSharp),
 
                 // Python
                 // new AlgorithmStatisticsTestParameters("BasicTemplateFuturesAlgorithmDaily", basicTemplateFuturesAlgorithmDailyStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("AddRemoveSecurityRegressionAlgorithm", addRemoveSecurityRegressionStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("BasicTemplateAlgorithm", basicTemplateStatistics, Language.Python),
+                new AlgorithmStatisticsTestParameters("BasicTemplateFrameworkAlgorithm", basicTemplateFrameworkStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("BasicTemplateOptionsAlgorithm", basicTemplateOptionsStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("CustomDataRegressionAlgorithm", customDataRegressionStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("DropboxBaseDataUniverseSelectionAlgorithm", dropboxBaseDataUniverseSelectionStatistics, Language.Python),
@@ -757,7 +808,8 @@ namespace QuantConnect.Tests
                 new AlgorithmStatisticsTestParameters("HourReverseSplitRegressionAlgorithm", hourReverseSplitStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("FractionalQuantityRegressionAlgorithm", fractionalQuantityRegressionStatistics, Language.Python),
                 new AlgorithmStatisticsTestParameters("CustomIndicatorAlgorithm", basicTemplateStatistics, Language.Python),
-                new AlgorithmStatisticsTestParameters("BasicTemplateCryptoAlgorithm", basicTemplateCryptoAlgorithmStatistics, Language.Python)
+                new AlgorithmStatisticsTestParameters("BasicTemplateCryptoAlgorithm", basicTemplateCryptoAlgorithmStatistics, Language.Python),
+                new AlgorithmStatisticsTestParameters("IndicatorSuiteAlgorithm", indicatorSuiteAlgorithmStatistics, Language.Python)
 
                 // FSharp
                 // new AlgorithmStatisticsTestParameters("BasicTemplateAlgorithm", basicTemplateStatistics, Language.FSharp),

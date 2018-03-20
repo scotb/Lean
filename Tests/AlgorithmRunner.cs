@@ -19,13 +19,20 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using NodaTime;
 using NUnit.Framework;
 using QuantConnect.Configuration;
+using QuantConnect.Data;
+using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine;
 using QuantConnect.Lean.Engine.Alphas;
+using QuantConnect.Lean.Engine.HistoricalData;
 using QuantConnect.Lean.Engine.Results;
+using QuantConnect.Lean.Engine.Setup;
 using QuantConnect.Logging;
+using QuantConnect.Packets;
 using QuantConnect.Util;
+using HistoryRequest = QuantConnect.Data.HistoryRequest;
 
 namespace QuantConnect.Tests
 {
@@ -53,6 +60,8 @@ namespace QuantConnect.Tests
                 Config.Set("environment", "");
                 Config.Set("messaging-handler", "QuantConnect.Messaging.Messaging");
                 Config.Set("job-queue-handler", "QuantConnect.Queues.JobQueue");
+                Config.Set("setup-handler", "RegressionSetupHandlerWrapper");
+                Config.Set("history-provider", "RegressionHistoryProviderWrapper");
                 Config.Set("api-handler", "QuantConnect.Api.Api");
                 Config.Set("result-handler", "QuantConnect.Lean.Engine.Results.RegressionResultHandler");
                 Config.Set("algorithm-language", language.ToString());
@@ -115,10 +124,10 @@ namespace QuantConnect.Tests
                 AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.RollingAveragedPopulationScore.Direction);
                 AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.RollingAveragedPopulationScore.Magnitude);
                 AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.LongShortRatio);
-                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalAlphasClosed);
-                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalAlphasGenerated);
+                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalInsightsClosed);
+                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalInsightsGenerated);
                 AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalEstimatedAlphaValue);
-                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalAlphasAnalysisCompleted);
+                AssertAlphaStatistics(expectedAlphaStatistics, alphaStatistics, s => s.TotalInsightsAnalysisCompleted);
             }
 
             // we successfully passed the regression test, copy the log file so we don't have to continually
@@ -131,7 +140,7 @@ namespace QuantConnect.Tests
             var passedOrderLogFile = ordersLogFile.Replace("./regression/", "./passed/");
             Directory.CreateDirectory(Path.GetDirectoryName(passedFile));
             File.Delete(passedOrderLogFile);
-            File.Copy(ordersLogFile, passedOrderLogFile);
+            if (File.Exists(ordersLogFile)) File.Copy(ordersLogFile, passedOrderLogFile);
         }
 
         private static void AssertAlphaStatistics(AlphaRuntimeStatistics expected, AlphaRuntimeStatistics actual, Expression<Func<AlphaRuntimeStatistics, object>> selector)
@@ -150,6 +159,35 @@ namespace QuantConnect.Tests
             else
             {
                 Assert.AreEqual(expectedValue, actualValue, "Failed on alpha statistics " + field);
+            }
+        }
+
+        /// <summary>
+        /// Used to intercept the algorithm instance to aid the <see cref="RegressionHistoryProviderWrapper"/>
+        /// </summary>
+        class RegressionSetupHandlerWrapper : BacktestingSetupHandler
+        {
+            public static IAlgorithm Algorithm { get; private set; }
+            public override IAlgorithm CreateAlgorithmInstance(AlgorithmNodePacket algorithmNodePacket, string assemblyPath)
+            {
+                Algorithm = base.CreateAlgorithmInstance(algorithmNodePacket, assemblyPath);
+                return Algorithm;
+            }
+        }
+
+        /// <summary>
+        /// Used to perform checks against history requests for all regression algorithms
+        /// </summary>
+        class RegressionHistoryProviderWrapper : SubscriptionDataReaderHistoryProvider
+        {
+            public override IEnumerable<Slice> GetHistory(IEnumerable<HistoryRequest> requests, DateTimeZone sliceTimeZone)
+            {
+                requests = requests.ToList();
+                if (requests.Any(r => RegressionSetupHandlerWrapper.Algorithm.UniverseManager.ContainsKey(r.Symbol)))
+                {
+                    throw new Exception("History requests should not be submitted for universe symbols");
+                }
+                return base.GetHistory(requests, sliceTimeZone);
             }
         }
     }

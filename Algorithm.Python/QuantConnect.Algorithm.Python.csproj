@@ -43,6 +43,7 @@
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="IndicatorSuiteAlgorithm.py" />
     <None Include="BasicTemplateAlgorithm.py" />
     <None Include="BasicTemplateDailyAlgorithm.py" />
     <None Include="BasicTemplateFillForwardAlgorithm.py" />
@@ -116,6 +117,8 @@
     <None Include="HourSplitRegressionAlgorithm.py" />
     <None Include="HourReverseSplitRegressionAlgorithm.py" />
     <None Include="MultipleSymbolConsolidationAlgorithm.py" />
+    <None Include="ConstituentsQC500GeneratorAlgorithm.py" />
+    <None Include="CustomDataIndicatorExtensionsAlgorithm.py" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Algorithm\QuantConnect.Algorithm.csproj">

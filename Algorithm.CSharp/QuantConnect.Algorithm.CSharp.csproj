@@ -85,11 +85,14 @@
   <ItemGroup>
     <Compile Include="AddRemoveSecurityRegressionAlgorithm.cs" />
     <Compile Include="BasicTemplateCryptoAlgorithm.cs" />
+    <Compile Include="BasicTemplateCryptoFrameworkAlgorithm.cs" />
     <Compile Include="BasicTemplateIntrinioEconomicData.cs" />
     <Compile Include="BasicTemplateFrameworkAlgorithm.cs" />
     <Compile Include="BasicTemplateLibrary.cs" />
     <Compile Include="CustomFrameworkModelsAlgorithm.cs" />
     <Compile Include="FinancialAdvisorDemoAlgorithm.cs" />
+    <Compile Include="ForexInternalFeedOnDataHigherResolutionRegressionAlgorithm.cs" />
+    <Compile Include="ForexInternalFeedOnDataSameResolutionRegressionAlgorithm.cs" />
     <Compile Include="RollingWindowAlgorithm.cs" />
     <Compile Include="BasicTemplateDailyAlgorithm.cs" />
     <Compile Include="BasicTemplateFxcmVolumeAlgorithm.cs" />
@@ -180,6 +183,8 @@
     <Compile Include="OrderTicketDemoAlgorithm.cs" />
     <Compile Include="WeeklyUniverseSelectionRegressionAlgorithm.cs" />
     <Compile Include="OptionChainProviderAlgorithm.cs" />
+    <Compile Include="ConstituentsQC500GeneratorAlgorithm.cs" />
+    <Compile Include="CustomDataIndicatorExtensionsAlgorithm.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Algorithm.Framework\QuantConnect.Algorithm.Framework.csproj">

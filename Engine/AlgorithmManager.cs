@@ -132,7 +132,7 @@ namespace QuantConnect.Lean.Engine
         /// <param name="results">Result handler object</param>
         /// <param name="realtime">Realtime processing object</param>
         /// <param name="leanManager">ILeanManager implementation that is updated periodically with the IAlgorithm instance</param>
-        /// <param name="alphas">Alpha handler used to process algorithm generated alphas</param>
+        /// <param name="alphas">Alpha handler used to process algorithm generated insights</param>
         /// <param name="token">Cancellation token</param>
         /// <remarks>Modify with caution</remarks>
         public void Run(AlgorithmNodePacket job, IAlgorithm algorithm, IDataFeed feed, ITransactionHandler transactions, IResultHandler results, IRealTimeHandler realtime, ILeanManager leanManager, IAlphaHandler alphas, CancellationToken token)
@@ -332,7 +332,7 @@ namespace QuantConnect.Lean.Engine
                     }
                 }
 
-                // sample alpha charts now that we've updated time/price information but BEFORE we receive new alphas
+                // sample alpha charts now that we've updated time/price information but BEFORE we receive new insights
                 alphas.ProcessSynchronousEvents();
 
                 // fire real time events after we've updated based on the new data
@@ -780,11 +780,20 @@ namespace QuantConnect.Lean.Engine
                             var security = algorithm.Securities[symbol];
                             var data = slice[symbol];
                             var list = new List<BaseData>();
-                            var ticks = data as List<Tick>;
-                            if (ticks != null) list.AddRange(ticks);
-                            else               list.Add(data);
+                            Type dataType;
 
-                            Type dataType = data.GetType();
+                            var ticks = data as List<Tick>;
+                            if (ticks != null)
+                            {
+                                list.AddRange(ticks);
+                                dataType = typeof(Tick);
+                            }
+                            else
+                            {
+                                list.Add(data);
+                                dataType = data.GetType();
+                            }
+
                             var config = security.Subscriptions.FirstOrDefault(subscription => dataType.IsAssignableFrom(subscription.Type));
                             if (config == null)
                             {
@@ -793,6 +802,7 @@ namespace QuantConnect.Lean.Engine
 
                             paired.Add(new DataFeedPacket(security, config, list));
                         }
+
                         timeSlice = TimeSlice.Create(slice.Time.ConvertToUtc(timeZone), timeZone, algorithm.Portfolio.CashBook, paired, SecurityChanges.None);
                     }
                     catch (Exception err)

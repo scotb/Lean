@@ -19,9 +19,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using QuantConnect.Brokerages;
 using QuantConnect.Configuration;
+using QuantConnect.Exceptions;
 using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine.DataFeeds;
 using QuantConnect.Lean.Engine.HistoricalData;
@@ -45,6 +47,7 @@ namespace QuantConnect.Lean.Engine
         private readonly bool _liveMode;
         private readonly LeanEngineSystemHandlers _systemHandlers;
         private readonly LeanEngineAlgorithmHandlers _algorithmHandlers;
+        private readonly StackExceptionInterpreter _exceptionInterpreter = StackExceptionInterpreter.CreateFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
 
         /// <summary>
         /// Gets the configured system handlers for this engine instance
@@ -164,7 +167,16 @@ namespace QuantConnect.Lean.Engine
                         initializeComplete = false;
                         //Get all the error messages: internal in algorithm and external in setup handler.
                         var errorMessage = String.Join(",", algorithm.ErrorMessages);
-                        errorMessage += String.Join(",", _algorithmHandlers.Setup.Errors);
+                        errorMessage += String.Join(",", _algorithmHandlers.Setup.Errors.Select(e =>
+                        {
+                            var message = e.Message;
+                            if (e.InnerException != null)
+                            {
+                                var err = _exceptionInterpreter.Interpret(e.InnerException, _exceptionInterpreter);
+                                message += _exceptionInterpreter.GetExceptionMessageHeader(err);
+                            }
+                            return message;
+                        }));
                         Log.Error("Engine.Run(): " + errorMessage);
                         _algorithmHandlers.Results.RuntimeError(errorMessage);
                         _systemHandlers.Api.SetAlgorithmStatus(job.AlgorithmId, AlgorithmStatus.RuntimeError, errorMessage);
@@ -238,7 +250,7 @@ namespace QuantConnect.Lean.Engine
                     threadFeed.Start(); // Data feed pushing data packets into thread bridge;
                     threadTransactions.Start(); // Transaction modeller scanning new order requests
                     threadRealTime.Start(); // RealTime scan time for time based events:
-                    threadAlphas.Start(); // Alpha thread for processing algorithm alphas
+                    threadAlphas.Start(); // Alpha thread for processing algorithm alpha insights
 
                     // Result manager scanning message queue: (started earlier)
                     _algorithmHandlers.Results.DebugMessage(string.Format("Launching analysis for {0} with LEAN Engine v{1}", job.AlgorithmId, Globals.Version));
@@ -433,10 +445,13 @@ namespace QuantConnect.Lean.Engine
             if (_algorithmHandlers.DataFeed != null) _algorithmHandlers.DataFeed.Exit();
             if (_algorithmHandlers.Results != null)
             {
-                var message = "Runtime Error: " + err;
+                // perform exception interpretation
+                err = _exceptionInterpreter.Interpret(err, _exceptionInterpreter);
+
+                var message = "Runtime Error: " + _exceptionInterpreter.GetExceptionMessageHeader(err);
                 Log.Trace("Engine.Run(): Sending runtime error to user...");
                 _algorithmHandlers.Results.LogMessage(message);
-                _algorithmHandlers.Results.RuntimeError(message, err.StackTrace);
+                _algorithmHandlers.Results.RuntimeError(message, err.ToString());
                 _systemHandlers.Api.SetAlgorithmStatus(job.AlgorithmId, AlgorithmStatus.RuntimeError, message + " Stack Trace: " + err);
             }
         }

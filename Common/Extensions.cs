@@ -28,6 +28,7 @@ using NodaTime;
 using Python.Runtime;
 using QuantConnect.Orders;
 using QuantConnect.Securities;
+using QuantConnect.Util;
 using Timer = System.Timers.Timer;
 
 namespace QuantConnect
@@ -890,6 +891,26 @@ namespace QuantConnect
         }
 
         /// <summary>
+        /// Get the first occurence of a string between two characters from another string
+        /// </summary>
+        /// <param name="value">The original string</param>
+        /// <param name="left">Left bound of the substring</param>
+        /// <param name="right">Right bound of the substring</param>
+        /// <returns>Substring from original string bounded by the two characters</returns>
+        public static string GetStringBetweenChars(this string value, char left, char right)
+        {
+            var startIndex = 1 + value.IndexOf(left);
+            var length = value.IndexOf(right, startIndex) - startIndex;
+            if (length > 0)
+            {
+                value = value.Substring(startIndex, length);
+                startIndex = 1 + value.IndexOf(left);
+                return value.Substring(startIndex).Trim();
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Return the first in the series of names, or find the one that matches the configured algirithmTypeName
         /// </summary>
         /// <param name="names">The list of class names</param>
@@ -1005,6 +1026,40 @@ namespace QuantConnect
                 }
                 return value;
             }
+        }
+
+        /// <summary>
+        /// Tries to convert a <see cref="PyObject"/> into a managed object
+        /// </summary>
+        /// <typeparam name="T">Target type of the resulting managed object</typeparam>
+        /// <param name="pyObject">PyObject to be converted</param>
+        /// <param name="result">Managed object </param>
+        /// <returns>True if successful conversion</returns>
+        public static bool TryConvert<T>(this PyObject pyObject, out T result)
+            where T : class
+        {
+            result = default(T);
+
+            if (pyObject == null)
+            {
+                return true;
+            }
+
+            using (Py.GIL())
+            {
+                try
+                {
+                    result = pyObject.AsManagedObject(typeof(T)) as T;
+                    return true;
+                }
+                catch
+                {
+                    // Do not throw or log the exception.
+                    // Return false as an exception means that the conversion could not be made.
+                }
+            }
+
+            return false;
         }
     }
 }
