@@ -90,6 +90,7 @@
     <Compile Include="BasicTemplateFrameworkAlgorithm.cs" />
     <Compile Include="BasicTemplateLibrary.cs" />
     <Compile Include="CustomFrameworkModelsAlgorithm.cs" />
+    <Compile Include="DollarCostAverageAlgorithm.cs" />
     <Compile Include="FinancialAdvisorDemoAlgorithm.cs" />
     <Compile Include="ForexInternalFeedOnDataHigherResolutionRegressionAlgorithm.cs" />
     <Compile Include="ForexInternalFeedOnDataSameResolutionRegressionAlgorithm.cs" />
